@@ -1,37 +1,34 @@
 const router = require('express').Router()
-const { Product, Category, Tag, ProductTag } = require('../../models')
+const { Product, Category, Tag, ProductTag } = require('../models')
 
 // The `/api/products` endpoint
 
 // get all products
 router.get('/products', (req, res) => {
   // find all products
-  Product.findAll({})
+  // be sure to include its associated Category and Tag data
+  Product.findAll({
+    include: [Category, Tag]
+  })
     .then(products => res.json(products))
     .catch(err => console.log(err))
-  // be sure to include its associated Category and Tag data
 })
 
 // get one product
 router.get('/products/:id', (req, res) => {
   // find a single product by its `id`
-  Product.findOne({ where: { id: req.params.id } })
+  // be sure to include its associated Category and Tag data
+  Product.findOne({
+    where: { id: req.params.id },
+    include: [Category, Tag]
+  })
     .then(product => res.json(product))
     .catch(err => console.log(err))
-  // be sure to include its associated Category and Tag data
 })
 
 // create new product
 router.post('/products', (req, res) => {
-  /* req.body should look like this...*/
-  Product.create({
-    product_name: req.body.product_name,
-    price: req.body.price,
-    stock: req.body.stock,
-    tagIds: //referenced from product ID
-  })
-
-  /*
+  /* req.body should look like this...
     {
       product_name: "Basketball",
       price: 200.00,
@@ -39,9 +36,6 @@ router.post('/products', (req, res) => {
       tagIds: [1, 2, 3, 4]
     }
   */
-
-
-  //Everything Below
   Product.create(req.body)
     .then((product) => {
       // if there's product tags, we need to create pairings to bulk create in the ProductTag model
@@ -108,6 +102,16 @@ router.put('/products/:id', (req, res) => {
 
 router.delete('/products/:id', (req, res) => {
   // delete one product by its `id` value
+  Product.destroy({
+    where: { id: req.params.id }
+  })
+    .then(() => {
+      return ProductTag.destroy({
+        where: { product_id: req.params.id }
+      })
+        .then(() => res.sendStatus(200))
+        .catch(err => console.log(err))
+    })
 })
 
 module.exports = router
